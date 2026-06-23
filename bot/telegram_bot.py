@@ -10,6 +10,13 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
+# Cloudflare Worker — يتجاوز الحجب من الجزائر
+# المكتبة ستضيف /{token}/{method} تلقائياً بعد هذا الـ URL
+PROXY_BASE_URL = os.getenv(
+    "TELEGRAM_PROXY_URL",
+    "https://telegram-proxy.khalilchergui2005.workers.dev"
+)
+
 # إعداد الـ logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -36,7 +43,6 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "سيصلك الملف خلال دقيقة.",
         do_quote=True
     )
-    # TODO: استدعاء الـ pipeline في الذرة 56
     logger.info(f"صورة مستلمة من: {update.effective_user.id}")
 
 
@@ -49,13 +55,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 
 def run_bot() -> None:
-    """تشغيل البوت"""
+    """تشغيل البوت عبر Cloudflare Proxy"""
     if not TELEGRAM_BOT_TOKEN:
         raise EnvironmentError("TELEGRAM_BOT_TOKEN غير موجود في .env")
 
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    # base_url بدون توكن — المكتبة تضيفه تلقائياً
+    base_url = f"{PROXY_BASE_URL}/"
 
-    # تسجيل الأوامر
+    logger.info(f"Proxy base_url: {base_url}")
+
+    app = (
+        Application.builder()
+        .token(TELEGRAM_BOT_TOKEN)
+        .base_url(base_url)
+        .build()
+    )
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_image))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
