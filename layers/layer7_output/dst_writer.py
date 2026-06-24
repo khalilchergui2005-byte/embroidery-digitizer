@@ -76,7 +76,7 @@ def write_dst(stitch_list: list, output_path: Path, metadata: dict = None) -> Re
 
     # 7. الكتابة
     try:
-        pyembroidery.write_embroidery(pattern, str(output_path))
+        pyembroidery.write(pattern, str(output_path))
         if output_path.exists():
             return RecoveryResult(success=True, data=output_path)
         else:
